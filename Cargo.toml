@@ -3,6 +3,7 @@ name = "git2_credentials"
 version = "0.1.0"
 authors = ["David Bernard <david.bernard.31@gmail.com>"]
 edition = "2018"
+description = "Provide credential function to used with git2::RemoteCallbacks.credentials"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["git"]
