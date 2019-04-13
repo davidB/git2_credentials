@@ -1,5 +1,7 @@
 # git2_credentials
 
+[![Build Status](https://dev.azure.com/davidbernard31/git2_credentials/_apis/build/status/davidB.git_credentials?branchName=master)](https://dev.azure.com/davidbernard31/git2_credentials/_build/latest?definitionId=1&branchName=master)
+
 Provide credentials function to used with [git2](https://crates.io/crates/git2)::[RemoteCallbacks.credentials](https://docs.rs/git2/0.8.0/git2/struct.RemoteCallbacks.html#method.credentials)
 
 ## Credit
