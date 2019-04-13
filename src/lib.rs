@@ -1,27 +1,27 @@
-/// Provide credential function to used with [git2](https://crates.io/crates/git2)::[RemoteCallbacks.credentials](https://docs.rs/git2/0.8.0/git2/struct.RemoteCallbacks.html#method.credentials)
-///
-/// Usage:
-/// ```rust
-/// use git2;
-/// use git2_credentials::CredentialHandler;
-/// use tempfile;
-///
-/// let mut cb = git2::RemoteCallbacks::new();
-/// let git_config = git2::Config::open_default().unwrap();
-/// let mut ch = CredentialHandler::new(git_config);
-/// cb.credentials(move |url, username, allowed| ch.try_next_credential(url, username, allowed));
-///
-/// let mut fo = git2::FetchOptions::new();
-/// fo.remote_callbacks(cb)
-///     .download_tags(git2::AutotagOption::All)
-///     .update_fetchhead(true);
-/// let dst = tempfile::tempdir().unwrap();
-/// std::fs::create_dir_all(&dst.as_ref()).unwrap();
-/// git2::build::RepoBuilder::new()
-///     .branch("master")
-///     .fetch_options(fo)
-///     .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
-/// ```
+//! Provide credential function to used with [git2](https://crates.io/crates/git2)::[RemoteCallbacks.credentials](https://docs.rs/git2/0.8.0/git2/struct.RemoteCallbacks.html#method.credentials)
+//!
+//! Usage:
+//! ```rust
+//! use git2;
+//! use git2_credentials::CredentialHandler;
+//! use tempfile;
+//!
+//! let mut cb = git2::RemoteCallbacks::new();
+//! let git_config = git2::Config::open_default().unwrap();
+//! let mut ch = CredentialHandler::new(git_config);
+//! cb.credentials(move |url, username, allowed| ch.try_next_credential(url, username, allowed));
+//!
+//! let mut fo = git2::FetchOptions::new();
+//! fo.remote_callbacks(cb)
+//!     .download_tags(git2::AutotagOption::All)
+//!     .update_fetchhead(true);
+//! let dst = tempfile::tempdir().unwrap();
+//! std::fs::create_dir_all(&dst.as_ref()).unwrap();
+//! git2::build::RepoBuilder::new()
+//!     .branch("master")
+//!     .fetch_options(fo)
+//!     .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
+//! ```
 use git2;
 use failure::Error;
 
