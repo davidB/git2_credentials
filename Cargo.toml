@@ -1,8 +1,12 @@
 [package]
-name = "git2_credentails"
+name = "git2_credentials"
 version = "0.1.0"
 authors = ["David Bernard <david.bernard.31@gmail.com>"]
 edition = "2018"
+readme = "README.md"
+keywords = ["git"]
+repository = "https://github.com/davidB/git2_credentials"
+homepage = "https://github.com/davidB/git2_credentials"
 
 [dependencies]
 git2 = "0.8.0"
