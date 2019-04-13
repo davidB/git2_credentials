@@ -11,16 +11,16 @@
 //! let mut ch = CredentialHandler::new(git_config);
 //! cb.credentials(move |url, username, allowed| ch.try_next_credential(url, username, allowed));
 //!
-//! let mut fo = git2::FetchOptions::new();
-//! fo.remote_callbacks(cb)
-//!     .download_tags(git2::AutotagOption::All)
-//!     .update_fetchhead(true);
-//! let dst = tempfile::tempdir().unwrap();
-//! std::fs::create_dir_all(&dst.as_ref()).unwrap();
-//! git2::build::RepoBuilder::new()
-//!     .branch("master")
-//!     .fetch_options(fo)
-//!     .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
+//! // let mut fo = git2::FetchOptions::new();
+//! // fo.remote_callbacks(cb)
+//! //     .download_tags(git2::AutotagOption::All)
+//! //     .update_fetchhead(true);
+//! // let dst = tempfile::tempdir().unwrap();
+//! // std::fs::create_dir_all(&dst.as_ref()).unwrap();
+//! // git2::build::RepoBuilder::new()
+//! //     .branch("master")
+//! //     .fetch_options(fo)
+//! //     .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
 //! ```
 use git2;
 use failure::Error;
