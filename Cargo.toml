@@ -11,4 +11,9 @@ homepage = "https://github.com/davidB/git2_credentials"
 exclude = ["/azure-pipelines.yml", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
 
 [dependencies]
-git2 = "0.8.0"
+git2 = "0.8"
+failure = "0.1.5"
+dialoguer = "0.3.0"
+
+[dev-dependencies]
+tempfile = "3.0.7"
