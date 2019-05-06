@@ -42,7 +42,7 @@ pub struct CredentialHandler {
 // implemention based on code & comment from cargo
 // https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/git/utils.rs#L415-L628
 // License APACHE
-// but adapted to not used wrapper over function like withXxx(FnMut), a more OO approach
+// but adapted to not use wrapper over function like withXxx(FnMut), a more OO approach
 impl CredentialHandler
 {
     #[cfg(feature = "ui4dialoguer")]
@@ -80,7 +80,7 @@ impl CredentialHandler
     ///
     /// The main purpose of this function is to construct the "authentication
     /// callback" which is used to clone a repository. This callback will attempt to
-    /// find the right authentication on the system (without user input) and will
+    /// find the right authentication on the system (maybe with user input) and will
     /// guide libgit2 in doing so.
     ///
     /// The callback is provided `allowed` types of credentials, and we try to do as
@@ -89,12 +89,13 @@ impl CredentialHandler
     /// - Prioritize SSH keys from the local ssh agent as they're likely the most
     ///   reliable. The username here is prioritized from the credential
     ///   callback, then from whatever is configured in git itself, and finally
-    ///   we fall back to the generic user of `git`.
+    ///   we fall back to the generic user of `git`. If no ssh agent try to use
+    ///   the default key ($HOME/.ssh/id_rsa, $HOME/.ssh/id_ed25519)
     ///
     /// - If a username/password is allowed, then we fallback to git2-rs's
     ///   implementation of the credential helper. This is what is configured
     ///   with `credential.helper` in git, and is the interface for the macOS
-    ///   keychain, for example.
+    ///   keychain, for example. Else ask (on ui) the for username and password.
     ///
     /// - After the above two have failed, we just kinda grapple attempting to
     ///   return *something*.
@@ -125,7 +126,8 @@ impl CredentialHandler
         // So if we're being called here then we know that (a) we're using ssh
         // authentication and (b) no username was specified in the URL that
         // we're trying to clone. We need to guess an appropriate username here,
-        // but that may involve a few attempts. Unfortunately we can't switch
+        // but that may involve a few attempts.
+        // (FIXME) Unfortunately we can't switch
         // usernames during one authentication session with libgit2, so to
         // handle this we bail out of this authentication session after setting
         // the flag `ssh_username_requested`, and then we handle this below.
@@ -154,8 +156,7 @@ impl CredentialHandler
         if allowed.contains(git2::CredentialType::SSH_KEY) {
             // If ssh-agent authentication fails, libgit2 will keep
             // calling this callback asking for other authentication
-            // methods to try. Make sure we only try ssh-agent once,
-            // to avoid loossh_attempts_count
+            // methods to try. Make sure we only try ssh-agent once.
             self.ssh_attempts_count = (self.ssh_attempts_count + 1) % 3;
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
@@ -166,11 +167,7 @@ impl CredentialHandler
             };
         }
 
-        // Sometimes libgit2 will ask for a username/password in plaintext. This
-        // is where Cargo would have an interactive prompt if we supported it,
-        // but we currently don't! Right now the only way we support fetching a
-        // plaintext password is through the `credential.helper` support, so
-        // fetch that here.
+        // Sometimes libgit2 will ask for a username/password in plaintext.
         //
         // If ssh-agent authentication fails, libgit2 will keep calling this
         // callback asking for other authentication methods to try. Check
@@ -197,8 +194,6 @@ impl CredentialHandler
         if allowed.contains(git2::CredentialType::DEFAULT) {
             return git2::Cred::default();
         }
-
-        // TODO add interactive (user + password)
 
         // Stop trying
         Err(git2::Error::from_str("no valid authentication available"))
