@@ -1,6 +1,6 @@
 [package]
 name = "git2_credentials"
-version = "0.1.2-dev"
+version = "0.2.0-dev"
 authors = ["David Bernard <david.bernard.31@gmail.com>"]
 edition = "2018"
 description = "Provide credential function to used with git2::RemoteCallbacks.credentials"
@@ -12,6 +12,7 @@ homepage = "https://github.com/davidB/git2_credentials"
 exclude = ["/azure-pipelines.yml", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
 
 [dependencies]
+dirs = "1.0.5"
 git2 = "0.8"
 failure = "0.1.5"
 dialoguer = "0.3.0"

@@ -20,14 +20,16 @@
 //! // git2::build::RepoBuilder::new()
 //! //     .branch("master")
 //! //     .fetch_options(fo)
-//! //     .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
+//! //     .clone("git@github.com:davidB/git2_credentials.git", dst.as_ref()).unwrap();
 //! ```
+mod ssh_config;
+
 use git2;
 use failure::Error;
 
 pub struct CredentialHandler {
     usernames: Vec<String>,
-    ssh_agent_attempts_count: usize,
+    ssh_attempts_count: usize,
     username_attempts_count: usize,
     cred_helper_bad: Option<bool>,
     cfg: git2::Config,
@@ -55,7 +57,7 @@ impl CredentialHandler {
 
         CredentialHandler {
             usernames,
-            ssh_agent_attempts_count: 0,
+            ssh_attempts_count: 2,
             username_attempts_count: 0,
             cred_helper_bad: None,
             cfg,
@@ -95,6 +97,8 @@ impl CredentialHandler {
         username: Option<&str>,
         allowed: git2::CredentialType,
     ) -> Result<git2::Cred, git2::Error> {
+        // dbg!(allowed);
+
         // libgit2's "USERNAME" authentication actually means that it's just
         // asking us for a username to keep going. This is currently only really
         // used for SSH authentication and isn't really an authentication type.
@@ -139,13 +143,14 @@ impl CredentialHandler {
             // If ssh-agent authentication fails, libgit2 will keep
             // calling this callback asking for other authentication
             // methods to try. Make sure we only try ssh-agent once,
-            // to avoid looping forever.
-            let idx = self.ssh_agent_attempts_count;
-            self.ssh_agent_attempts_count += 1;
-            return match self.usernames.get(idx).map(|s| &s[..]) {
-                Some("") => git2::Cred::ssh_key_from_agent(&username.unwrap_or("")),
-                Some(s) => git2::Cred::ssh_key_from_agent(&s),
-                _ => Err(git2::Error::from_str("no more username to try")),
+            // to avoid loossh_attempts_count
+            self.ssh_attempts_count = (self.ssh_attempts_count + 1) % 3;
+            // dbg!(self.ssh_attempts_count);
+            let u = username.unwrap_or("git");
+            return match self.ssh_attempts_count  {
+                0 => git2::Cred::ssh_key_from_agent(&u),
+                1 => Self::cred_from_ssh_config(&u),
+                _ => Err(git2::Error::from_str("try with an other username")),
             };
         }
 
@@ -181,6 +186,14 @@ impl CredentialHandler {
 
         // Stop trying
         Err(git2::Error::from_str("no valid authentication available"))
+    }
+
+    fn cred_from_ssh_config(username: &str) -> Result<git2::Cred, git2::Error> {
+        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase();
+        return match key {
+            Some(k) => git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str)),
+            None => Err(git2::Error::from_str(&format!("failed authentication for repository"))),
+        }
     }
 
     fn ui_ask_user_password(username: &str) -> Result<(String, String), Error> {

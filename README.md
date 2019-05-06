@@ -29,13 +29,19 @@ std::fs::create_dir_all(&dst.as_ref()).unwrap();
 git2::build::RepoBuilder::new()
     .branch("master")
     .fetch_options(fo)
-    .clone("git@github.com:davidB/git_credentials.git", dst.as_ref()).unwrap();
+    .clone("git@github.com:davidB/git2_credentials.git", dst.as_ref()).unwrap();
+```
+
+you can run the example via
+
+```sh
+cargo run --example clone -- --nocapture
 ```
 
 ### Build
 
 ```sh
-cargo make cf-flow
+cargo make ci-flow
 ```
 
 ## Credit
@@ -43,9 +49,11 @@ cargo make cf-flow
 Code *extracted* from:
 
 - [cargo/utils.rs at master · rust-lang/cargo](https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/git/utils.rs) (search `with_authentication`)
-  > Cargo, a package manager for Rust. 
+  > Cargo, a package manager for Rust.
 - [ffizer](https://crates.io/crates/ffizer)
   > ffizer is a files and folders initializer / generator. Create any kind (or part) of project from template.
+- [gpm/ssh.rs at master · aerys/gpm](https://github.com/aerys/gpm/blob/master/src/gpm/ssh.rs)
+  > Git-based package manager.
 
 ## Links
 
