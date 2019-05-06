@@ -24,8 +24,11 @@
 //! ```
 mod ssh_config;
 
-use git2;
+#[cfg(feature = "ui4dialoguer")]
+pub mod ui4dialoguer;
+
 use failure::Error;
+use git2;
 
 pub struct CredentialHandler {
     usernames: Vec<String>,
@@ -33,15 +36,23 @@ pub struct CredentialHandler {
     username_attempts_count: usize,
     cred_helper_bad: Option<bool>,
     cfg: git2::Config,
+    ui: Box<dyn CredentialUI>,
 }
 
 // implemention based on code & comment from cargo
 // https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/git/utils.rs#L415-L628
 // License APACHE
 // but adapted to not used wrapper over function like withXxx(FnMut), a more OO approach
-
-impl CredentialHandler {
+impl CredentialHandler
+{
+    #[cfg(feature = "ui4dialoguer")]
     pub fn new(cfg: git2::Config) -> Self {
+        use ui4dialoguer::CredentialUI4Dialoguer;
+        Self::new_with_ui(cfg, Box::new(CredentialUI4Dialoguer{}))
+    }
+
+    pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self
+    {
         let mut usernames = Vec::new();
         usernames.push("".to_string()); //default
         usernames.push("git".to_string());
@@ -61,6 +72,7 @@ impl CredentialHandler {
             username_attempts_count: 0,
             cred_helper_bad: None,
             cfg,
+            ui,
         }
     }
 
@@ -147,9 +159,9 @@ impl CredentialHandler {
             self.ssh_attempts_count = (self.ssh_attempts_count + 1) % 3;
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
-            return match self.ssh_attempts_count  {
+            return match self.ssh_attempts_count {
                 0 => git2::Cred::ssh_key_from_agent(&u),
-                1 => Self::cred_from_ssh_config(&u),
+                1 => self.cred_from_ssh_config(&u),
                 _ => Err(git2::Error::from_str("try with an other username")),
             };
         }
@@ -164,12 +176,16 @@ impl CredentialHandler {
         // callback asking for other authentication methods to try. Check
         // cred_helper_bad to make sure we only try the git credentail helper
         // once, to avoid looping forever.
-        if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT) && self.cred_helper_bad.is_none() {
+        if allowed.contains(git2::CredentialType::USER_PASS_PLAINTEXT)
+            && self.cred_helper_bad.is_none()
+        {
             let r = git2::Cred::credential_helper(&self.cfg, url, username);
             self.cred_helper_bad = Some(r.is_err());
             if r.is_err() {
-                match Self::ui_ask_user_password(username.unwrap_or("")) {
-                    Ok((user, password)) => return git2::Cred::userpass_plaintext(&user, &password),
+                match self.ui.ask_user_password(username.unwrap_or("")) {
+                    Ok((user, password)) => {
+                        return git2::Cred::userpass_plaintext(&user, &password)
+                    }
                     Err(_) => (), //FIXME give a feeback instead of ignore
                 }
             }
@@ -188,25 +204,20 @@ impl CredentialHandler {
         Err(git2::Error::from_str("no valid authentication available"))
     }
 
-    fn cred_from_ssh_config(username: &str) -> Result<git2::Cred, git2::Error> {
-        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase();
+    fn cred_from_ssh_config(&self, username: &str) -> Result<git2::Cred, git2::Error> {
+        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase(self.ui.as_ref());
         return match key {
-            Some(k) => git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str)),
-            None => Err(git2::Error::from_str(&format!("failed authentication for repository"))),
-        }
+            Some(k) => {
+                git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
+            }
+            None => Err(git2::Error::from_str(&format!(
+                "failed authentication for repository"
+            ))),
+        };
     }
+}
 
-    fn ui_ask_user_password(username: &str) -> Result<(String, String), Error> {
-        use dialoguer::Input;
-        use dialoguer::PasswordInput;
-
-        let user: String = Input::new()
-            .default(username.to_owned())
-            .with_prompt("username")
-            .interact()?;
-        let password: String = PasswordInput::new()
-            .with_prompt("password (hidden)")
-            .interact()?;
-        Ok((user.to_owned(), password.to_owned()))
-    }
+pub trait CredentialUI {
+    fn ask_user_password(&self, username: &str) -> Result<(String, String), Error>;
+    fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Error>;
 }

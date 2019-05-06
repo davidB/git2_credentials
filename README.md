@@ -32,11 +32,13 @@ git2::build::RepoBuilder::new()
     .clone("git@github.com:davidB/git2_credentials.git", dst.as_ref()).unwrap();
 ```
 
-you can run the example via
+You can run the example via
 
 ```sh
 cargo run --example clone -- --nocapture
 ```
+
+You can provide custom UI (to ask password, passphrase) by providing a `CredentialUI`. A default implementation (with [dialoguer](https://crates.io/crates/dialoguer) is provided.
 
 ### Build
 
