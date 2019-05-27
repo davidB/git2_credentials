@@ -12,7 +12,7 @@ homepage = "https://github.com/davidB/git2_credentials"
 exclude = ["/azure-pipelines.yml", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
 
 [dependencies]
-dirs = "1.0.5"
+dirs = "2.0.0"
 git2 = "0.8"
 failure = "0.1.5"
 dialoguer = { version = "0.4.0", optional = true }
