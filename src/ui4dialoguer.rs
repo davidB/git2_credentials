@@ -12,6 +12,7 @@ impl crate::CredentialUI for CredentialUI4Dialoguer {
             .interact()?;
         let password: String = PasswordInput::new()
             .with_prompt("password (hidden)")
+            .allow_empty_password(true)
             .interact()?;
         Ok((user.to_owned(), password.to_owned()))
     }
@@ -19,6 +20,7 @@ impl crate::CredentialUI for CredentialUI4Dialoguer {
     fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Error> {
         let passphrase: String = PasswordInput::new()
             .with_prompt(passphrase_prompt)
+            .allow_empty_password(true)
             .interact()?;
         Ok(passphrase.to_owned())
     }
