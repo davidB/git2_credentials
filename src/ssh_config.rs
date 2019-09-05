@@ -22,7 +22,7 @@ fn find_default_ssh_key() -> Option<path::PathBuf> {
 }
 
 pub(crate) fn get_ssh_key_and_passphrase(
-    ui: &CredentialUI,
+    ui: &dyn CredentialUI,
 ) -> (Option<path::PathBuf>, Option<String>) {
     let key = find_default_ssh_key();
     match key {
