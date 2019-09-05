@@ -201,14 +201,12 @@ impl CredentialHandler
 
     fn cred_from_ssh_config(&self, username: &str) -> Result<git2::Cred, git2::Error> {
         let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase(self.ui.as_ref());
-        return match key {
+        match key {
             Some(k) => {
                 git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
             }
-            None => Err(git2::Error::from_str(&format!(
-                "failed authentication for repository"
-            ))),
-        };
+            None => Err(git2::Error::from_str("failed authentication for repository")),
+        }
     }
 }
 

@@ -8,7 +8,7 @@ use std::path;
 
 fn find_default_ssh_key() -> Option<path::PathBuf> {
     dirs::home_dir().and_then(|home_path| {
-        let mut ssh_path = path::PathBuf::from(home_path);
+        let mut ssh_path = home_path.clone();
         ssh_path.push(".ssh");
         vec!["id_rsa", "id_ed25519"].iter().find_map(|f| {
             let p = ssh_path.join(f);
