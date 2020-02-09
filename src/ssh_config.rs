@@ -51,3 +51,16 @@ pub(crate) fn get_ssh_key_and_passphrase(
         }
     }
 }
+
+pub(crate) fn cred_from_home_dir(username: &str) -> Result<git2::Cred, git2::Error> {
+    let home_dir =
+        dirs::home_dir().ok_or_else(|| git2::Error::from_str("could not get home directory"))?;
+    let ssh_dir = home_dir.join(".ssh");
+
+    git2::Cred::ssh_key(
+        username,
+        Some(&ssh_dir.join("id_rsa.pub")),
+        &ssh_dir.join("id_rsa"),
+        None,
+    )
+}
