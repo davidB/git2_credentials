@@ -9,7 +9,7 @@ license = "Apache-2.0"
 keywords = ["git"]
 repository = "https://github.com/davidB/git2_credentials"
 homepage = "https://github.com/davidB/git2_credentials"
-exclude = ["/azure-pipelines.yml", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
+exclude = ["/.github", ".dependabot/", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
 
 [dependencies]
 dirs = "2.0"
