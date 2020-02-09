@@ -43,16 +43,14 @@ pub struct CredentialHandler {
 // https://github.com/rust-lang/cargo/blob/master/src/cargo/sources/git/utils.rs#L415-L628
 // License APACHE
 // but adapted to not use wrapper over function like withXxx(FnMut), a more OO approach
-impl CredentialHandler
-{
+impl CredentialHandler {
     #[cfg(feature = "ui4dialoguer")]
     pub fn new(cfg: git2::Config) -> Self {
         use ui4dialoguer::CredentialUI4Dialoguer;
-        Self::new_with_ui(cfg, Box::new(CredentialUI4Dialoguer{}))
+        Self::new_with_ui(cfg, Box::new(CredentialUI4Dialoguer {}))
     }
 
-    pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self
-    {
+    pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self {
         let mut usernames = Vec::new();
         usernames.push("".to_string()); //default
         usernames.push("git".to_string());
@@ -205,7 +203,9 @@ impl CredentialHandler
             Some(k) => {
                 git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
             }
-            None => Err(git2::Error::from_str("failed authentication for repository")),
+            None => Err(git2::Error::from_str(
+                "failed authentication for repository",
+            )),
         }
     }
 }
