@@ -155,12 +155,13 @@ impl CredentialHandler {
             // If ssh-agent authentication fails, libgit2 will keep
             // calling this callback asking for other authentication
             // methods to try. Make sure we only try ssh-agent once.
-            self.ssh_attempts_count = (self.ssh_attempts_count + 1) % 3;
+            self.ssh_attempts_count = (self.ssh_attempts_count + 1) % 4;
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
             return match self.ssh_attempts_count {
-                0 => git2::Cred::ssh_key_from_agent(&u),
-                1 => self.cred_from_ssh_config(&u),
+                0 => cred_from_home_dir(&u),
+                1 => git2::Cred::ssh_key_from_agent(&u),
+                2 => self.cred_from_ssh_config(&u),
                 _ => Err(git2::Error::from_str("try with an other username")),
             };
         }
@@ -208,6 +209,19 @@ impl CredentialHandler {
             )),
         }
     }
+}
+
+fn cred_from_home_dir(username: &str) -> Result<git2::Cred, git2::Error> {
+    let home_dir =
+        dirs::home_dir().ok_or_else(|| git2::Error::from_str("could not get home directory"))?;
+    let ssh_dir = home_dir.join(".ssh");
+
+    git2::Cred::ssh_key(
+        username,
+        Some(&ssh_dir.join("id_rsa.pub")),
+        &ssh_dir.join("id_rsa"),
+        None,
+    )
 }
 
 pub trait CredentialUI {
