@@ -1,10 +1,9 @@
-use failure::Error;
 use git2;
 use git2_credentials::ui4dialoguer::CredentialUI4Dialoguer;
 use git2_credentials::CredentialHandler;
 use tempfile;
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cb = git2::RemoteCallbacks::new();
     let git_config = git2::Config::open_default()?;
     let mut ch = CredentialHandler::new_with_ui(git_config, Box::new(CredentialUI4Dialoguer {}));

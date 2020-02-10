@@ -1,11 +1,11 @@
 use dialoguer::Input;
 use dialoguer::PasswordInput;
-use failure::Error;
+use std::error::Error;
 
 pub struct CredentialUI4Dialoguer;
 
 impl crate::CredentialUI for CredentialUI4Dialoguer {
-    fn ask_user_password(&self, username: &str) -> Result<(String, String), Error> {
+    fn ask_user_password(&self, username: &str) -> Result<(String, String), Box<dyn Error>> {
         let user: String = Input::new()
             .default(username.to_owned())
             .with_prompt("username")
@@ -17,7 +17,7 @@ impl crate::CredentialUI for CredentialUI4Dialoguer {
         Ok((user, password))
     }
 
-    fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Error> {
+    fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Box<dyn Error>> {
         let passphrase: String = PasswordInput::new()
             .with_prompt(passphrase_prompt)
             .allow_empty_password(true)

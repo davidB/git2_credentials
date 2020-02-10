@@ -27,8 +27,8 @@ mod ssh_config;
 #[cfg(feature = "ui4dialoguer")]
 pub mod ui4dialoguer;
 
-use failure::Error;
 use git2;
+use std::error::Error;
 
 const SSH_ATTEMPTS_COUNT: usize = 4;
 
@@ -214,6 +214,6 @@ impl CredentialHandler {
 }
 
 pub trait CredentialUI {
-    fn ask_user_password(&self, username: &str) -> Result<(String, String), Error>;
-    fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Error>;
+    fn ask_user_password(&self, username: &str) -> Result<(String, String), Box<dyn Error>>;
+    fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Box<dyn Error>>;
 }
