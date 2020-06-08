@@ -37,7 +37,7 @@ jobs:
       - name: Run tests
         run: |
           cargo make --profile "${{matrix.os.profile_ci_flow}}" ci-flow
-          cargo run --example clone -- --nocapture
+          # cargo run --example clone -- --nocapture
         env:
           # for list of xcode sdk see https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners#xcode
           # DEVELOPER_DIR: "/Applications/Xcode_11.app/Contents/Developer"
