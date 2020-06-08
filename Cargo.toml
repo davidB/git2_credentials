@@ -18,6 +18,7 @@ dialoguer = { version = "0.6.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.1.0"
+git2 = { version = "^0.13" }
 
 [features]
 default = ["ui4dialoguer"]
