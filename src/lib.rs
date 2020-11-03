@@ -22,6 +22,9 @@
 //! //     .fetch_options(fo)
 //! //     .clone("git@github.com:davidB/git2_credentials.git", dst.as_ref()).unwrap();
 //! ```
+#[macro_use]
+extern crate pest_derive;
+
 mod ssh_config;
 
 #[cfg(feature = "ui4dialoguer")]
@@ -30,11 +33,10 @@ pub mod ui4dialoguer;
 use git2;
 use std::error::Error;
 
-const SSH_ATTEMPTS_COUNT: usize = 4;
-
 pub struct CredentialHandler {
     usernames: Vec<String>,
     ssh_attempts_count: usize,
+    ssh_key_candidates: Vec<std::path::PathBuf>,
     username_attempts_count: usize,
     cred_helper_bad: Option<bool>,
     cfg: git2::Config,
@@ -68,7 +70,8 @@ impl CredentialHandler {
 
         CredentialHandler {
             usernames,
-            ssh_attempts_count: SSH_ATTEMPTS_COUNT - 1,
+            ssh_attempts_count: 0,
+            ssh_key_candidates: vec![],
             username_attempts_count: 0,
             cred_helper_bad: None,
             cfg,
@@ -147,8 +150,7 @@ impl CredentialHandler {
 
         // An "SSH_KEY" authentication indicates that we need some sort of SSH
         // authentication. This can currently either come from the ssh-agent
-        // process or from a raw in-memory SSH key. Cargo only supports using
-        // ssh-agent currently.
+        // process or from a raw in-memory SSH key.
         //
         // If we get called with this then the only way that should be possible
         // is if a username is specified in the URL itself (e.g., `username` is
@@ -157,14 +159,23 @@ impl CredentialHandler {
             // If ssh-agent authentication fails, libgit2 will keep
             // calling this callback asking for other authentication
             // methods to try. Make sure we only try ssh-agent once.
-            self.ssh_attempts_count = (self.ssh_attempts_count + 1) % SSH_ATTEMPTS_COUNT;
+            self.ssh_attempts_count += 1;
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
-            return match self.ssh_attempts_count {
-                0 => git2::Cred::ssh_key_from_agent(&u),
-                1 => self.cred_from_ssh_config(&u),
-                2 => ssh_config::cred_from_home_dir(&u),
-                _ => Err(git2::Error::from_str("try with an other username")),
+            return if self.ssh_attempts_count == 1 {
+                git2::Cred::ssh_key_from_agent(&u)
+            } else {
+                if self.ssh_attempts_count == 2 {
+                    let maybe_host = extract_host(url)?;
+                    self.ssh_key_candidates =
+                        ssh_config::find_ssh_key_candidates(maybe_host.as_deref())?;
+                }
+                let candidate_idx = self.ssh_attempts_count - 2;
+                if candidate_idx < self.ssh_key_candidates.len() {
+                    self.cred_from_ssh_config(candidate_idx, &u)
+                } else {
+                    Err(git2::Error::from_str("try with an other username"))
+                }
             };
         }
 
@@ -200,8 +211,16 @@ impl CredentialHandler {
         Err(git2::Error::from_str("no valid authentication available"))
     }
 
-    fn cred_from_ssh_config(&self, username: &str) -> Result<git2::Cred, git2::Error> {
-        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase(self.ui.as_ref());
+    fn cred_from_ssh_config(
+        &self,
+        candidate_idx: usize,
+        username: &str,
+    ) -> Result<git2::Cred, git2::Error> {
+        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase(
+            &self.ssh_key_candidates,
+            candidate_idx,
+            self.ui.as_ref(),
+        )?;
         match key {
             Some(k) => {
                 git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
@@ -213,7 +232,56 @@ impl CredentialHandler {
     }
 }
 
+fn extract_host(url: &str) -> Result<Option<String>, git2::Error> {
+    // crates url failed to parse `"git@github.com:davidB/git2_credentials.git"`
+    // let url = url::Url::parse(&url_normalized).map_err(|source| {
+    //     git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
+    // })?;
+    // Ok(url.host().map(|h| h.to_string()))
+    let url_re = regex::Regex::new(
+        r"^(https?|ssh)://([[:alnum:]:\._-]+@)?(?P<host>[[:alnum:]\._-]+)(:\d+)?/(?P<path>[[:alnum:]\._\-/]+).git$",
+    ).map_err(|source| git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source)))?;
+    let url_re2 = regex::Regex::new(
+        r"^(https?|ssh)://([[:alnum:]:\._-]+@)?(?P<host>[[:alnum:]\._-]+)(:\d+)?/(?P<path>[[:alnum:]\._\-/]+)$",
+    ).map_err(|source| git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source)))?;
+    let git_re =
+        regex::Regex::new(r"^git@(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+).git$")
+            .map_err(|source| {
+                git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
+            })?;
+    let git_re2 =
+        regex::Regex::new(r"^git@(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+)$")
+            .map_err(|source| {
+                git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
+            })?;
+    Ok(git_re
+        .captures(url)
+        .or_else(|| git_re2.captures(url))
+        .or_else(|| url_re.captures(url))
+        .or_else(|| url_re2.captures(url))
+        .map(|caps| caps["host"].to_string()))
+}
+
 pub trait CredentialUI {
     fn ask_user_password(&self, username: &str) -> Result<(String, String), Box<dyn Error>>;
     fn ask_ssh_passphrase(&self, passphrase_prompt: &str) -> Result<String, Box<dyn Error>>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_extract_host() -> Result<(), Box<dyn Error>> {
+        assert_eq!(
+            extract_host("git@github.com:davidB/git2_credentials.git"),
+            Ok(Some("github.com".to_string()))
+        );
+        assert_eq!(
+            extract_host("https://github.com/davidB/git2_credentials.git"),
+            Ok(Some("github.com".to_string()))
+        );
+        Ok(())
+    }
 }
