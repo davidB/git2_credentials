@@ -23,13 +23,16 @@ fn find_ssh_key_in_ssh_config(host: &str) -> Result<Option<String>, git2::Error>
 }
 
 fn read_ssh_config_as_string() -> Result<Option<String>, git2::Error> {
-    match dirs::home_dir() {
-        Some(home_path) => {
+    dirs::home_dir()
+        .map(|home_path| {
             let mut ssh_config_path = path::PathBuf::from(home_path);
 
             ssh_config_path.push(".ssh");
             ssh_config_path.push("config");
-
+            ssh_config_path
+        })
+        .filter(|p| p.exists())
+        .map(|ssh_config_path| {
             let mut f = fs::File::open(ssh_config_path.to_owned()).map_err(|source| {
                 git2::Error::from_str(&format!(
                     "failed to open {:?}: {:#?}",
@@ -45,9 +48,8 @@ fn read_ssh_config_as_string() -> Result<Option<String>, git2::Error> {
                 ))
             })?;
             Ok(Some(contents))
-        }
-        None => Ok(None),
-    }
+        })
+        .unwrap_or(Ok(None))
 }
 
 fn find_ssh_key_for_host_in_config(
