@@ -1,6 +1,7 @@
-config = _{ SOI ~ newline* ~ host* ~ EOI }
+config = _{ SOI ~ (newline | kv)* ~ host* ~ EOI }
 host = { ^"Host" ~ pattern+ ~ option* ~ newline* }
-option = { newline ~ key ~ value}
+kv = { key ~ value }
+option = { newline ~ kv}
 key = @{ !^"Host" ~ ('a'..'z' | 'A'..'Z' | ASCII_DIGIT)+ }
 value = ${ value_unquoted | value_quoted }
 value_unquoted = { (!newline ~ !dquote ~ ANY)+ }

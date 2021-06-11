@@ -273,4 +273,23 @@ host bitbucket.org
         );
         assert_eq!(actual, Ok(Some("~/.ssh/id_rsa_b".to_string())));
     }
+
+    #[test]
+    fn find_ssh_key_for_host_in_config_nofailed_on_kexalgorithms() {
+        let actual = find_ssh_key_for_host_in_config(
+            "github.com",
+            r#"
+KexAlgorithms +diffie-hellman-group1-sha1
+
+Host github.com
+    HostName github.com
+    IdentityFile ~/.ssh/me
+
+Host *
+    ServerAliveInterval 1
+    ServerAliveCountMax 300
+        "#,
+        );
+        assert_eq!(actual, Ok(Some("~/.ssh/me".to_string())));
+    }
 }
