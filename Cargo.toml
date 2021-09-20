@@ -12,7 +12,7 @@ homepage = "https://github.com/davidB/git2_credentials"
 exclude = ["/.github", ".dependabot/", "/docs/**", "/scripts", ".gitignore", "/tests/**"]
 
 [dependencies]
-dirs = "^3.0"
+dirs = "^4.0"
 git2 = { version = "^0.13", default-features = false }
 dialoguer = { version = "^0.8", optional = true }
 pest = "^2.1"
