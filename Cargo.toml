@@ -14,7 +14,7 @@ exclude = ["/.github", ".dependabot/", "/docs/**", "/scripts", ".gitignore", "/t
 [dependencies]
 dirs = "^3.0"
 git2 = { version = "^0.13", default-features = false }
-dialoguer = { version = "^0.8", optional = true }
+dialoguer = { version = "^0.9", optional = true }
 pest = "^2.1"
 pest_derive = "^2.1"
 regex = "^1.4"
