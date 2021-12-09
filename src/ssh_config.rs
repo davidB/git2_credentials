@@ -1,11 +1,9 @@
 // based on https://github.com/aerys/gpm/blob/master/src/gpm/ssh.rs
 use crate::CredentialUI;
 use dirs;
+//use log::{debug, trace};
 use pest::Parser;
-use std::fs;
-use std::io;
-use std::io::prelude::*;
-use std::path;
+use std::{fs, io, io::prelude::*, path};
 
 /// Simple Parser for `.ssh/config` files genereted by pest and the grammar defined into `ssh_config.pest`
 /// (follow the syntax defined at [Syntax of pest parsers - A thoughtful introduction to the pest parser](https://pest.rs/book/grammars/syntax.html))
@@ -56,8 +54,7 @@ fn find_ssh_key_for_host_in_config(
     host: &str,
     ssh_config_str: &str,
 ) -> Result<Option<String>, git2::Error> {
-    // trace!("parsing {:?} to find host {}", ssh_config_path, host);
-
+    //trace!("parsing {:?} to find host {}", ssh_config_str, host);
     let pairs = SSHConfigParser::parse(Rule::config, &ssh_config_str).map_err(|source| {
         git2::Error::from_str(&format!("failed to parse .ssh/config: {:#?}", source))
     })?;
@@ -83,8 +80,7 @@ fn find_ssh_key_for_host_in_config(
 
         match pattern {
             Some(pattern) => {
-                // trace!("found matching host with pattern {:?}", pattern.as_str());
-
+                //trace!("found matching host with pattern {:?}", pattern.as_str());
                 let options = inner_pairs.filter(|p| -> bool { p.as_rule() == Rule::option });
 
                 for option in options {
@@ -107,10 +103,10 @@ fn find_ssh_key_for_host_in_config(
                             ))
                         })?;
 
-                    if key.as_str() == "IdentityFile" {
+                    if key.as_str().to_ascii_lowercase() == "identityfile" {
                         let path = value.as_str().to_string();
 
-                        // trace!("found IdentityFile option with value {:?}", path);
+                        //trace!("found IdentityFile option with value {:?}", path);
                         return Ok(Some(path));
                     }
                 }
@@ -154,42 +150,57 @@ pub(crate) fn find_ssh_key_candidates(
     Ok(candidates_path)
 }
 
-pub(crate) fn get_ssh_key_and_passphrase(
+pub(crate) fn get_ssh_key_path(
     candidates: &Vec<path::PathBuf>,
     candidate_idx: usize,
-    ui: &dyn CredentialUI,
-) -> Result<(Option<path::PathBuf>, Option<String>), git2::Error> {
+    _ui: &dyn CredentialUI,
+) -> Result<(Option<path::PathBuf>, bool), git2::Error> {
     let key = candidates.get(candidate_idx);
     match key {
         Some(key_path) => {
-            // debug!("authenticate with private key located in {:?}", key_path);
-
+            //debug!("authenticate with private key located in {:?}", key_path);
             let mut f = fs::File::open(key_path.to_owned()).unwrap();
             let mut key = String::new();
 
             f.read_to_string(&mut key).map_err(|source| {
                 git2::Error::from_str(&format!("failed to read {:?}: {:#?}", key_path, source))
             })?;
+
             f.seek(io::SeekFrom::Start(0)).map_err(|source| {
                 git2::Error::from_str(&format!(
                     "failed to set seek to 0 in {:?}: {:#?}",
                     key_path, source
                 ))
             })?;
-            Ok((
-                Some(key_path.to_owned()),
-                ui.ask_ssh_passphrase(&format!(
-                    "Enter passphrase for key '{}'",
-                    key_path.to_string_lossy()
-                ))
-                .ok(),
-            ))
+            let is_encrypted = is_encrypted(&key)
+                .map_err(|msg| git2::Error::from_str(&format!("invalid key file: {}", msg)))?;
+            Ok((Some(key_path.to_owned()), is_encrypted))
         }
         None => {
             // warn!("unable to get private key for host {}", &host);
-            Ok((None, None))
+            Ok((None, false))
         }
     }
+}
+
+/// Returns true if the key is encrypted, or Err if the key had an invalid format
+///
+fn is_encrypted(key: &str) -> Result<bool, String> {
+    let key_re: regex::Regex =
+        regex::Regex::new(r#"[-]+BEGIN[[:alnum:] ]+[-]+[\r\n]+([^-]+)[-]+END[[:alnum:] ]+[-]+"#)
+            .unwrap();
+
+    let caps = key_re.captures(key).ok_or("regex".to_string())?;
+    let text1 = caps.get(1).map_or("", |m| m.as_str()).trim();
+    let t2 = text1
+        .bytes()
+        .filter(|b| !b" \t\n\r=".contains(b))
+        .collect::<Vec<u8>>();
+    let dec = base64::decode(t2).map_err(|e| format!("encoding: {}", e))?;
+    if !dec.starts_with(b"openssh-key-v1") {
+        return Err("unrecognized openssh version".to_string());
+    }
+    Ok(String::from_utf8_lossy(&dec[15..32]).contains("aes256-"))
 }
 
 #[cfg(test)]
@@ -252,6 +263,38 @@ host bitbucket.org
 Host b*
         IdentityFile ~/.ssh/id_rsa_b
         IdentitiesOnly "yes"
+        "#,
+        );
+        assert_eq!(actual, Ok(Some("~/.ssh/id_rsa_bitbucket".to_string())));
+    }
+
+    #[test]
+    fn comments_inside_host_section() {
+        let actual = find_ssh_key_for_host_in_config(
+            "bitbucket.org",
+            r#"
+host bitbucket.org
+        # comment within host
+        IdentityFile ~/.ssh/id_rsa_bitbucket
+        IdentitiesOnly "yes"
+
+# comments after last host ok too
+        "#,
+        );
+        assert_eq!(actual, Ok(Some("~/.ssh/id_rsa_bitbucket".to_string())));
+    }
+
+    #[test]
+    fn case_insensitive_keys() {
+        let actual = find_ssh_key_for_host_in_config(
+            "bitbucket.org",
+            r#"
+host bitbucket.org
+        # comment within host
+        identityFILE ~/.ssh/id_rsa_bitbucket
+        IdentitiesOnly "yes"
+
+# comments after last host ok too
         "#,
         );
         assert_eq!(actual, Ok(Some("~/.ssh/id_rsa_bitbucket".to_string())));

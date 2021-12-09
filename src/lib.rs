@@ -138,11 +138,16 @@ impl CredentialHandler {
             // debug_assert!(username.is_none());
             let idx = self.username_attempts_count;
             self.username_attempts_count += 1;
+            //log::debug!(
+            //    "attempt {} login user {}",
+            //    (idx + 1),
+            //    username.unwrap_or("")
+            //);
             return match self.usernames.get(idx).map(|s| &s[..]) {
                 Some("") if username.is_none() => {
                     Err(git2::Error::from_str("gonna try usernames later"))
                 }
-                Some("") => git2::Cred::username(&username.unwrap_or("")),
+                Some("") => git2::Cred::username(username.unwrap_or("")),
                 Some(s) => git2::Cred::username(&s),
                 _ => Err(git2::Error::from_str("no more username to try")),
             };
@@ -162,6 +167,7 @@ impl CredentialHandler {
             self.ssh_attempts_count += 1;
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
+            //log::debug!("attempt {} ssh user {}", self.ssh_attempts_count, u);
             return if self.ssh_attempts_count == 1 {
                 git2::Cred::ssh_key_from_agent(&u)
             } else {
@@ -216,14 +222,21 @@ impl CredentialHandler {
         candidate_idx: usize,
         username: &str,
     ) -> Result<git2::Cred, git2::Error> {
-        let (key, passphrase) = ssh_config::get_ssh_key_and_passphrase(
+        let (key, is_encrypted) = ssh_config::get_ssh_key_path(
             &self.ssh_key_candidates,
             candidate_idx,
             self.ui.as_ref(),
         )?;
         match key {
             Some(k) => {
-                git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
+                if is_encrypted {
+                    // if the ssh key is encrypted, ask ssh-agent for the key,
+                    // so that the user is only prompted once (per shell session).
+                    git2::Cred::ssh_key_from_agent(username)
+                } else {
+                    // If the key is unencrypted, use the key file directly.
+                    git2::Cred::ssh_key(username, None, &k, None)
+                }
             }
             None => Err(git2::Error::from_str(
                 "failed authentication for repository",
