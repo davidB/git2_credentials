@@ -1,5 +1,4 @@
-use dialoguer::Input;
-use dialoguer::Password;
+use dialoguer::{Input, Password};
 use std::error::Error;
 
 pub struct CredentialUI4Dialoguer;
