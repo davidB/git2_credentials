@@ -21,6 +21,9 @@ Cargo.lock
 !.vscode/launch.json
 !.vscode/extensions.json
 
+### clion/jetbrains ide
+.idea
+
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 .history
