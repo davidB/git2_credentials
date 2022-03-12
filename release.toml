@@ -4,3 +4,4 @@ tag-prefix = ""
 tag-name = "{{prefix}}{{version}}"
 tag-message = ":bookmark: {{version}}"
 dev-version-ext = "dev"
+dev-version = true
