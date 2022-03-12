@@ -1,6 +1,6 @@
 [package]
 name = "git2_credentials"
-version = "0.7.4-dev"
+version = "0.8.0"
 authors = ["David Bernard <david.bernard.31@gmail.com>"]
 edition = "2018"
 description = "Provide credential function to used with git2::RemoteCallbacks.credentials"
