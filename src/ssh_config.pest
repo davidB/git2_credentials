@@ -1,7 +1,7 @@
 config = _{ SOI ~ (newline | kv)* ~ host* ~ EOI }
 host = { ^"Host" ~ pattern+ ~ option* ~ newline* }
 kv = { key ~ value }
-option = { newline ~ kv}
+option = { newline* ~ kv}
 key = @{ !^"Host" ~ ('a'..'z' | 'A'..'Z' | ASCII_DIGIT)+ }
 value = ${ value_unquoted | value_quoted }
 value_unquoted = { (!newline ~ !dquote ~ ANY)+ }
@@ -11,7 +11,7 @@ values = _{(value_unquoted)*}
 pattern = ${ "!"? ~ (ASCII_DIGIT | 'a'..'z' | 'A'..'Z' | "-" | "_" | "." | "*")+ }
 
 dquote = _{ "\"" }
-newline = _{ "\n" | "\r\n" }
+newline = { _COMMENT? ~ NEWLINE }
 
 WHITESPACE = _{ " " | "\t" }
-COMMENT = _{ "#" ~ (!newline ~ ANY)* }
+_COMMENT   = _{ WHITESPACE* ~ "#" ~ (!NEWLINE ~ ANY)* }

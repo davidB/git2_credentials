@@ -107,7 +107,7 @@ fn find_ssh_key_for_host_in_config(
                             ))
                         })?;
 
-                    if key.as_str() == "IdentityFile" {
+                    if key.as_str().eq_ignore_ascii_case("IdentityFile") {
                         let path = value.as_str().to_string();
 
                         // trace!("found IdentityFile option with value {:?}", path);
@@ -289,6 +289,35 @@ Host *
     ServerAliveInterval 1
     ServerAliveCountMax 300
         "#,
+        );
+        assert_eq!(actual, Ok(Some("~/.ssh/me".to_string())));
+    }
+
+    #[test]
+    fn find_ssh_key_for_host_in_config_nofailed_on_comments() {
+        let actual = find_ssh_key_for_host_in_config(
+            "bitbucket.org",
+            r#"
+# comment before
+Host bitbucket.org
+        # comments
+        IdentityFile ~/.ssh/me # comments
+        IdentitiesOnly "yes" 
+# comments after last host ok too
+        "#,
+        );
+        assert_eq!(actual, Ok(Some("~/.ssh/me".to_string())));
+    }
+
+    #[test]
+    fn case_insensitive_keys() {
+        let actual = find_ssh_key_for_host_in_config(
+            "bitbucket.org",
+            r#"
+    host bitbucket.org
+            identityFILE ~/.ssh/me
+            IdentitiesOnly "yes"
+            "#,
         );
         assert_eq!(actual, Ok(Some("~/.ssh/me".to_string())));
     }
