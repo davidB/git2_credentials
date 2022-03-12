@@ -30,7 +30,6 @@ mod ssh_config;
 #[cfg(feature = "ui4dialoguer")]
 pub mod ui4dialoguer;
 
-use git2;
 use std::error::Error;
 
 pub struct CredentialHandler {
@@ -55,9 +54,7 @@ impl CredentialHandler {
     }
 
     pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self {
-        let mut usernames = Vec::new();
-        usernames.push("".to_string()); //default
-        usernames.push("git".to_string());
+        let mut usernames = vec!["".to_string(), "git".to_string()];
         if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
             usernames.push(s);
         }
@@ -142,8 +139,8 @@ impl CredentialHandler {
                 Some("") if username.is_none() => {
                     Err(git2::Error::from_str("gonna try usernames later"))
                 }
-                Some("") => git2::Cred::username(&username.unwrap_or("")),
-                Some(s) => git2::Cred::username(&s),
+                Some("") => git2::Cred::username(username.unwrap_or("")),
+                Some(s) => git2::Cred::username(s),
                 _ => Err(git2::Error::from_str("no more username to try")),
             };
         }
@@ -163,7 +160,7 @@ impl CredentialHandler {
             // dbg!(self.ssh_attempts_count);
             let u = username.unwrap_or("git");
             return if self.ssh_attempts_count == 1 {
-                git2::Cred::ssh_key_from_agent(&u)
+                git2::Cred::ssh_key_from_agent(u)
             } else {
                 if self.ssh_attempts_count == 2 {
                     let maybe_host = extract_host(url)?;
@@ -172,7 +169,7 @@ impl CredentialHandler {
                 }
                 let candidate_idx = self.ssh_attempts_count - 2;
                 if candidate_idx < self.ssh_key_candidates.len() {
-                    self.cred_from_ssh_config(candidate_idx, &u)
+                    self.cred_from_ssh_config(candidate_idx, u)
                 } else {
                     Err(git2::Error::from_str("try with an other username"))
                 }
@@ -222,9 +219,7 @@ impl CredentialHandler {
             self.ui.as_ref(),
         )?;
         match key {
-            Some(k) => {
-                git2::Cred::ssh_key(username, None, &k, passphrase.as_ref().map(String::as_str))
-            }
+            Some(k) => git2::Cred::ssh_key(username, None, &k, passphrase.as_deref()),
             None => Err(git2::Error::from_str(
                 "failed authentication for repository",
             )),

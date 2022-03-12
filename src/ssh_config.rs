@@ -1,6 +1,5 @@
 // based on https://github.com/aerys/gpm/blob/master/src/gpm/ssh.rs
 use crate::CredentialUI;
-use dirs;
 use pest::Parser;
 use std::fs;
 use std::io;
@@ -25,7 +24,7 @@ fn find_ssh_key_in_ssh_config(host: &str) -> Result<Option<String>, git2::Error>
 fn read_ssh_config_as_string() -> Result<Option<String>, git2::Error> {
     dirs::home_dir()
         .map(|home_path| {
-            let mut ssh_config_path = path::PathBuf::from(home_path);
+            let mut ssh_config_path = home_path;
 
             ssh_config_path.push(".ssh");
             ssh_config_path.push("config");
@@ -33,7 +32,7 @@ fn read_ssh_config_as_string() -> Result<Option<String>, git2::Error> {
         })
         .filter(|p| p.exists())
         .map(|ssh_config_path| {
-            let mut f = fs::File::open(ssh_config_path.to_owned()).map_err(|source| {
+            let mut f = fs::File::open(&ssh_config_path).map_err(|source| {
                 git2::Error::from_str(&format!(
                     "failed to open {:?}: {:#?}",
                     ssh_config_path, source
@@ -58,7 +57,7 @@ fn find_ssh_key_for_host_in_config(
 ) -> Result<Option<String>, git2::Error> {
     // trace!("parsing {:?} to find host {}", ssh_config_path, host);
 
-    let pairs = SSHConfigParser::parse(Rule::config, &ssh_config_str).map_err(|source| {
+    let pairs = SSHConfigParser::parse(Rule::config, ssh_config_str).map_err(|source| {
         git2::Error::from_str(&format!("failed to parse .ssh/config: {:#?}", source))
     })?;
     for pair in pairs {
@@ -66,15 +65,17 @@ fn find_ssh_key_for_host_in_config(
         let pattern = inner_pairs.find(|p| -> bool {
             let pattern_str = String::from(p.as_str());
 
-            match pattern_str.contains("*") {
+            match pattern_str.contains('*') {
                 true => {
                     // convert the globbing pattern to a regexp
-                    let pattern_str = pattern_str.replace(".", "\\.");
-                    let pattern_str = pattern_str.replace("*", ".*");
-                    let regexp = regex::Regex::new(pattern_str.as_str()).expect(&format!(
-                        "failed to parse converted regexp({}) from .ssh/config",
-                        pattern_str
-                    ));
+                    let pattern_str = pattern_str.replace('.', "\\.");
+                    let pattern_str = pattern_str.replace('*', ".*");
+                    let regexp = regex::Regex::new(pattern_str.as_str()).unwrap_or_else(|_| {
+                        panic!(
+                            "failed to parse converted regexp({}) from .ssh/config",
+                            pattern_str
+                        )
+                    });
                     p.as_rule() == Rule::pattern && regexp.is_match(host)
                 }
                 false => p.as_rule() == Rule::pattern && p.as_str() == host,
@@ -129,7 +130,7 @@ pub(crate) fn find_ssh_key_candidates(
     // first the candidates from .ssh/config for the target host
     if let Some(host) = host {
         if let Some(key_for_host) = find_ssh_key_in_ssh_config(host)? {
-            candidates.push(key_for_host.to_string());
+            candidates.push(key_for_host);
         }
     }
     // push default candidates in the same order than the list from IdentityFile in ssh_config man page.
@@ -148,14 +149,14 @@ pub(crate) fn find_ssh_key_candidates(
 
     let candidates_path = candidates
         .iter()
-        .map(|p| path::PathBuf::from(p.replace("~", &hds)))
+        .map(|p| path::PathBuf::from(p.replace('~', &hds)))
         .filter(|p| p.exists() && p.is_file())
         .collect();
     Ok(candidates_path)
 }
 
 pub(crate) fn get_ssh_key_and_passphrase(
-    candidates: &Vec<path::PathBuf>,
+    candidates: &[path::PathBuf],
     candidate_idx: usize,
     ui: &dyn CredentialUI,
 ) -> Result<(Option<path::PathBuf>, Option<String>), git2::Error> {
@@ -164,7 +165,7 @@ pub(crate) fn get_ssh_key_and_passphrase(
         Some(key_path) => {
             // debug!("authenticate with private key located in {:?}", key_path);
 
-            let mut f = fs::File::open(key_path.to_owned()).unwrap();
+            let mut f = fs::File::open(key_path).unwrap();
             let mut key = String::new();
 
             f.read_to_string(&mut key).map_err(|source| {
