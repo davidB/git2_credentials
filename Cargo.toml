@@ -20,7 +20,7 @@ exclude = [
 
 [dependencies]
 dirs = "^4.0"
-git2 = { version = "^0.14", default-features = false }
+git2 = { version = "^0.15", default-features = false }
 dialoguer = { version = "^0.10", optional = true }
 pest = "^2.1"
 pest_derive = "^2.1"
@@ -29,7 +29,7 @@ regex = "^1.5"
 [dev-dependencies]
 pretty_assertions = "1.2.0"
 tempfile = "3.3.0"
-git2 = { version = "^0.14" }
+git2 = { version = "^0.15" }
 
 [features]
 default = ["ui4dialoguer"]
