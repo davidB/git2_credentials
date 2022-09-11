@@ -207,7 +207,7 @@ Host x
 Host z
     z1 v
         "#;
-        SSHConfigParser::parse(Rule::config, &ssh_config_str)?;
+        SSHConfigParser::parse(Rule::config, ssh_config_str)?;
         Ok(())
     }
     #[test]
