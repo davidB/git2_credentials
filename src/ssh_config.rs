@@ -2,7 +2,6 @@
 use crate::CredentialUI;
 use pest::Parser;
 use std::fs;
-use std::io;
 use std::io::prelude::*;
 use std::path;
 
@@ -171,7 +170,7 @@ pub(crate) fn get_ssh_key_and_passphrase(
             f.read_to_string(&mut key).map_err(|source| {
                 git2::Error::from_str(&format!("failed to read {:?}: {:#?}", key_path, source))
             })?;
-            f.seek(io::SeekFrom::Start(0)).map_err(|source| {
+            f.rewind().map_err(|source| {
                 git2::Error::from_str(&format!(
                     "failed to set seek to 0 in {:?}: {:#?}",
                     key_path, source

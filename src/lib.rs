@@ -188,11 +188,8 @@ impl CredentialHandler {
             let r = git2::Cred::credential_helper(&self.cfg, url, username);
             self.cred_helper_bad = Some(r.is_err());
             if r.is_err() {
-                match self.ui.ask_user_password(username.unwrap_or("")) {
-                    Ok((user, password)) => {
-                        return git2::Cred::userpass_plaintext(&user, &password)
-                    }
-                    Err(_) => (), //FIXME give a feeback instead of ignore
+                if let Ok((user, password)) = self.ui.ask_user_password(username.unwrap_or("")) {
+                    return git2::Cred::userpass_plaintext(&user, &password);
                 }
             }
             return r;
