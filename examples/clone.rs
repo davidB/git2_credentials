@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .download_tags(git2::AutotagOption::All)
         .update_fetchhead(true);
     let dst = tempfile::tempdir()?;
-    std::fs::create_dir_all(&dst.as_ref())?;
+    std::fs::create_dir_all(dst.as_ref())?;
     git2::build::RepoBuilder::new()
         .branch("master")
         .fetch_options(fo)
