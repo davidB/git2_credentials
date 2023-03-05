@@ -1,5 +1,4 @@
 // based on https://github.com/aerys/gpm/blob/master/src/gpm/ssh.rs
-use crate::CredentialUI;
 use pest::Parser;
 use std::fs;
 use std::io::prelude::*;
@@ -154,11 +153,10 @@ pub(crate) fn find_ssh_key_candidates(
     Ok(candidates_path)
 }
 
-pub(crate) fn get_ssh_key_and_passphrase(
+pub(crate) fn get_ssh_key(
     candidates: &[path::PathBuf],
     candidate_idx: usize,
-    ui: &dyn CredentialUI,
-) -> Result<(Option<path::PathBuf>, Option<String>), git2::Error> {
+) -> Result<Option<path::PathBuf>, git2::Error> {
     let key = candidates.get(candidate_idx);
     match key {
         Some(key_path) => {
@@ -176,18 +174,11 @@ pub(crate) fn get_ssh_key_and_passphrase(
                     key_path, source
                 ))
             })?;
-            Ok((
-                Some(key_path.to_owned()),
-                ui.ask_ssh_passphrase(&format!(
-                    "Enter passphrase for key '{}'",
-                    key_path.to_string_lossy()
-                ))
-                .ok(),
-            ))
+            Ok(Some(key_path.to_owned()))
         }
         None => {
             // warn!("unable to get private key for host {}", &host);
-            Ok((None, None))
+            Ok(None)
         }
     }
 }
