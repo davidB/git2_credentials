@@ -25,6 +25,8 @@
 #[macro_use]
 extern crate pest_derive;
 
+pub use git2;
+
 mod ssh_config;
 
 #[cfg(feature = "ui4dialoguer")]
