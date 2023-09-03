@@ -54,7 +54,7 @@ impl CredentialHandler {
     }
 
     pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self {
-        let mut usernames = vec!["".to_string(), "git".to_string()];
+        let mut usernames = vec!["git".to_string()];
         if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
             usernames.push(s);
         }
@@ -132,14 +132,10 @@ impl CredentialHandler {
         // handle this we bail out of this authentication session after setting
         // the flag `ssh_username_requested`, and then we handle this below.
         if allowed.contains(git2::CredentialType::USERNAME) {
-            // debug_assert!(username.is_none());
+            debug_assert!(username.is_none());
             let idx = self.username_attempts_count;
             self.username_attempts_count += 1;
             return match self.usernames.get(idx).map(|s| &s[..]) {
-                Some("") if username.is_none() => {
-                    Err(git2::Error::from_str("gonna try usernames later"))
-                }
-                Some("") => git2::Cred::username(username.unwrap_or("")),
                 Some(s) => git2::Cred::username(s),
                 _ => Err(git2::Error::from_str("no more username to try")),
             };
