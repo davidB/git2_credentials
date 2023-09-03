@@ -129,10 +129,10 @@ fn find_entry_for_host_in_config(
                         })?;
 
                     if key.as_str().eq_ignore_ascii_case(name) {
-                        let path = value.as_str().to_string();
+                        let found_value = value.as_str().to_string();
 
-                        // trace!("found IdentityFile option with value {:?}", path);
-                        return Ok(Some(path));
+                        // trace!("found IdentityFile option with value {:?}", found_value);
+                        return Ok(Some(found_value));
                     }
                 }
             }
