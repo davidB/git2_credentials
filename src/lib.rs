@@ -245,21 +245,23 @@ fn extract_host(url: &str) -> Result<Option<String>, git2::Error> {
     let url_re2 = regex::Regex::new(
         r"^(https?|ssh)://([[:alnum:]:\._-]+@)?(?P<host>[[:alnum:]\._-]+)(:\d+)?/(?P<path>[[:alnum:]\._\-/]+)$",
     ).map_err(|source| git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source)))?;
-    let git_re =
-        regex::Regex::new(r"^git@(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+).git$")
-            .map_err(|source| {
-                git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
-            })?;
-    let git_re2 =
-        regex::Regex::new(r"^git@(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+)$")
-            .map_err(|source| {
-                git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
-            })?;
-    Ok(git_re
+    let git_re = regex::Regex::new(
+        r"^([[:alnum:]:\._-]+@)?(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+).git$",
+    )
+    .map_err(|source| {
+        git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
+    })?;
+    let git_re2 = regex::Regex::new(
+        r"^([[:alnum:]:\._-]+@)?(?P<host>[[:alnum:]\._-]+):(?P<path>[[:alnum:]\._\-/]+)$",
+    )
+    .map_err(|source| {
+        git2::Error::from_str(&format!("failed to parse url '{}': {:#?}", url, source))
+    })?;
+    Ok(url_re
         .captures(url)
-        .or_else(|| git_re2.captures(url))
-        .or_else(|| url_re.captures(url))
         .or_else(|| url_re2.captures(url))
+        .or_else(|| git_re.captures(url))
+        .or_else(|| git_re2.captures(url))
         .map(|caps| caps["host"].to_string()))
 }
 
@@ -282,6 +284,18 @@ mod tests {
         assert_eq!(
             extract_host("https://github.com/davidB/git2_credentials.git"),
             Ok(Some("github.com".to_string()))
+        );
+        assert_eq!(
+            extract_host("ssh://aur@aur.archlinux.org/souko.git"),
+            Ok(Some("aur.archlinux.org".to_string()))
+        );
+        assert_eq!(
+            extract_host("aur@aur.archlinux.org:souko.git"),
+            Ok(Some("aur.archlinux.org".to_string()))
+        );
+        assert_eq!(
+            extract_host("aur.archlinux.org:souko.git"),
+            Ok(Some("aur.archlinux.org".to_string()))
         );
         Ok(())
     }
