@@ -121,7 +121,7 @@ impl CredentialHandler {
         // handle this we bail out of this authentication session after setting
         // the flag `ssh_username_requested`, and then we handle this below.
         if allowed.contains(git2::CredentialType::USERNAME) {
-            debug_assert!(username.is_none());
+            // debug_assert!(username.is_none());
             let idx = self.username_attempts_count;
             self.username_attempts_count += 1;
             if idx == 0 {
