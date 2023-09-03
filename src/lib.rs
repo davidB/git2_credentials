@@ -33,10 +33,10 @@ pub mod ui4dialoguer;
 use std::error::Error;
 
 pub struct CredentialHandler {
-    usernames: Vec<String>,
+    username_attempts_count: usize,
+    username_candidates: Vec<String>,
     ssh_attempts_count: usize,
     ssh_key_candidates: Vec<std::path::PathBuf>,
-    username_attempts_count: usize,
     cred_helper_bad: Option<bool>,
     cfg: git2::Config,
     ui: Box<dyn CredentialUI>,
@@ -54,22 +54,11 @@ impl CredentialHandler {
     }
 
     pub fn new_with_ui(cfg: git2::Config, ui: Box<dyn CredentialUI>) -> Self {
-        let mut usernames = vec!["git".to_string()];
-        if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
-            usernames.push(s);
-        }
-
-        // let mut cred_helper = git2::CredentialHelper::new(url);
-        // cred_helper.config(cfg);
-        // if let Some(ref s) = cred_helper.username {
-        //     usernames.push(s.clone());
-        // }
-
         CredentialHandler {
-            usernames,
+            username_attempts_count: 0,
+            username_candidates: vec![],
             ssh_attempts_count: 0,
             ssh_key_candidates: vec![],
-            username_attempts_count: 0,
             cred_helper_bad: None,
             cfg,
             ui,
@@ -135,7 +124,12 @@ impl CredentialHandler {
             debug_assert!(username.is_none());
             let idx = self.username_attempts_count;
             self.username_attempts_count += 1;
-            return match self.usernames.get(idx).map(|s| &s[..]) {
+            if idx == 0 {
+                let maybe_host = extract_host(url)?;
+                self.username_candidates =
+                    ssh_config::find_username_candidates(maybe_host.as_deref())?;
+            }
+            return match self.username_candidates.get(idx).map(|s| &s[..]) {
                 Some(s) => git2::Cred::username(s),
                 _ => Err(git2::Error::from_str("no more username to try")),
             };

@@ -12,6 +12,13 @@ use std::path;
 #[allow(dead_code)]
 pub struct SSHConfigParser;
 
+fn find_username_in_ssh_config(host: &str) -> Result<Option<String>, git2::Error> {
+    match read_ssh_config_as_string()? {
+        Some(content) => find_username_for_host_in_config(host, &content),
+        _ => Ok(None),
+    }
+}
+
 fn find_ssh_key_in_ssh_config(host: &str) -> Result<Option<String>, git2::Error> {
     match read_ssh_config_as_string()? {
         Some(content) => find_ssh_key_for_host_in_config(host, &content),
@@ -49,9 +56,24 @@ fn read_ssh_config_as_string() -> Result<Option<String>, git2::Error> {
         .unwrap_or(Ok(None))
 }
 
+fn find_username_for_host_in_config(
+    host: &str,
+    ssh_config_str: &str,
+) -> Result<Option<String>, git2::Error> {
+    find_entry_for_host_in_config(host, ssh_config_str, "User")
+}
+
 fn find_ssh_key_for_host_in_config(
     host: &str,
     ssh_config_str: &str,
+) -> Result<Option<String>, git2::Error> {
+    find_entry_for_host_in_config(host, ssh_config_str, "IdentityFile")
+}
+
+fn find_entry_for_host_in_config(
+    host: &str,
+    ssh_config_str: &str,
+    name: &str,
 ) -> Result<Option<String>, git2::Error> {
     // trace!("parsing {:?} to find host {}", ssh_config_path, host);
 
@@ -106,7 +128,7 @@ fn find_ssh_key_for_host_in_config(
                             ))
                         })?;
 
-                    if key.as_str().eq_ignore_ascii_case("IdentityFile") {
+                    if key.as_str().eq_ignore_ascii_case(name) {
                         let path = value.as_str().to_string();
 
                         // trace!("found IdentityFile option with value {:?}", path);
@@ -118,6 +140,24 @@ fn find_ssh_key_for_host_in_config(
         };
     }
     Ok(None)
+}
+
+pub(crate) fn find_username_candidates(host: Option<&str>) -> Result<Vec<String>, git2::Error> {
+    // candidates in the same order than the list from IdentityFile in ssh_config man page.
+    let mut candidates = vec![];
+    // first the candidates from .ssh/config for the target host
+    if let Some(host) = host {
+        if let Some(username_host) = find_username_in_ssh_config(host)? {
+            candidates.push(username_host);
+        }
+    }
+    // push default candidates
+    candidates.push("git".to_string());
+    if let Ok(s) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
+        candidates.push(s);
+    }
+
+    Ok(candidates)
 }
 
 pub(crate) fn find_ssh_key_candidates(
