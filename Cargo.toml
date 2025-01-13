@@ -19,7 +19,7 @@ exclude = [
 ]
 
 [dependencies]
-dirs = "^5.0"
+dirs = "^6.0"
 git2 = { version = "^0.20", default-features = false }
 dialoguer = { version = "^0.11", optional = true }
 pest = "^2.3"
