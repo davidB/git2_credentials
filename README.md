@@ -3,7 +3,7 @@
 [![crate license](https://img.shields.io/crates/l/git2_credentials.svg)](https://spdx.org/licenses/Apache-2.0.html)
 [![crate version](https://img.shields.io/crates/v/git2_credentials.svg)](https://crates.io/crates/git2_credentials)
 
-[![Actions Status](https://github.com/davidB/git2_credentials/workflows/ci-flow/badge.svg)](https://github.com/davidB/git2_credentials/actions)
+[![Actions Status](https://github.com/davidB/git2_credentials/workflows/ci/badge.svg)](https://github.com/davidB/git2_credentials/actions)
 
 Provide credentials function to used with [git2](https://crates.io/crates/git2)::[RemoteCallbacks.credentials](https://docs.rs/git2/0.8.0/git2/struct.RemoteCallbacks.html#method.credentials)
 
@@ -43,7 +43,7 @@ You can provide custom UI (to ask password, passphrase) by providing a `Credenti
 ### Build
 
 ```sh
-cargo make ci-flow
+mise run ci
 ```
 
 ## Credit

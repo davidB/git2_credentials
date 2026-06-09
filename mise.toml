@@ -1,0 +1,31 @@
+[env]
+RUST_TEST_THREADS = "1"
+
+[tools]
+rust = { version = "1.93", profile = "minimal", components = "cargo,rustfmt,clippy" }
+
+[tasks.format]
+alias = "fmt"
+description = "Format the code"
+run = "cargo fmt --all"
+
+[tasks.autofix]
+description = "Automatically fix some linting issues & format code"
+depends_post = ["format"]
+run = [
+  "cargo fix --allow-dirty --workspace --all-features --all-targets --profile test",
+  "cargo clippy --fix --allow-dirty --workspace --all-features --all-targets --no-deps --profile test",
+]
+
+[tasks.ci]
+description = "Main CI flow - check, test, clippy"
+run = """
+cargo fmt --check
+cargo check
+cargo test
+cargo clippy -- -D warnings
+"""
+
+[tasks.publish]
+description = "Publish crate via cargo-release (eg `mise run publish -- --execute minor`)"
+run = "cargo release"
