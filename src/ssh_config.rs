@@ -146,10 +146,10 @@ pub(crate) fn find_username_candidates(host: Option<&str>) -> Result<Vec<String>
     // candidates in the same order than the list from IdentityFile in ssh_config man page.
     let mut candidates = vec![];
     // first the candidates from .ssh/config for the target host
-    if let Some(host) = host {
-        if let Some(username_host) = find_username_in_ssh_config(host)? {
-            candidates.push(username_host);
-        }
+    if let Some(host) = host
+        && let Some(username_host) = find_username_in_ssh_config(host)?
+    {
+        candidates.push(username_host);
     }
     // push default candidates
     candidates.push("git".to_string());
@@ -166,10 +166,10 @@ pub(crate) fn find_ssh_key_candidates(
     // candidates in the same order than the list from IdentityFile in ssh_config man page.
     let mut candidates = vec![];
     // first the candidates from .ssh/config for the target host
-    if let Some(host) = host {
-        if let Some(key_for_host) = find_ssh_key_in_ssh_config(host)? {
-            candidates.push(key_for_host);
-        }
+    if let Some(host) = host
+        && let Some(key_for_host) = find_ssh_key_in_ssh_config(host)?
+    {
+        candidates.push(key_for_host);
     }
     // push default candidates in the same order than the list from IdentityFile in ssh_config man page.
     candidates.extend_from_slice(&[

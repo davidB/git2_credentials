@@ -1,5 +1,5 @@
-use git2_credentials::ui4dialoguer::CredentialUI4Dialoguer;
 use git2_credentials::CredentialHandler;
+use git2_credentials::ui4dialoguer::CredentialUI4Dialoguer;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cb = git2::RemoteCallbacks::new();
