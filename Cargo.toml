@@ -1,7 +1,7 @@
 [package]
 name = "git2_credentials"
 version = "0.15.0"
-edition = "2021"
+edition = "2024"
 description = "Provide credential function to used with git2::RemoteCallbacks.credentials"
 readme = "README.md"
 license = "Apache-2.0"
